@@ -1,7 +1,5 @@
-thesis
-==============================
-
 Physics informed policies for smart grid operators
+==============================
 
 Project Organization
 ------------

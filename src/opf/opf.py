@@ -60,9 +60,9 @@ model.DG_constr_active_power = Constraint(model.Odg, model.OT,
 def DG_constr_reactive_power_rule(model, i, t):
     """
     Rule for reactive power of generators 
-       - x*Pmax*tan(acos(fp_min)) <= Q
+         -Q <= x*Pmax*tan(acos(fp_min))
     """
-    return (-model.dg_x[i,t]*model.DG_Pmax[i]*tan(acos(model.DG_fp_min[i])) <= model.Qdg[i,t])
+    return ( -model.Qdg[i,t] <= model.dg_x[i,t]*model.DG_Pmax[i]*tan(acos(model.DG_fp_min[i])))
 model.DG_constr_reactive_power = Constraint(model.Odg, model.OT,
                                     rule=DG_constr_reactive_power_rule)  # Reactive power for DG
 
@@ -160,16 +160,30 @@ model.ESS_decision_var = Constraint(model.Oess, model.OT,
 
 
 def ESS_constr_active_power_rule(model, i, t):
+
+    """
+    Rule for active power of consumers 
+        Pmin <= x*Pmax <= Pmax
+    """
     return (model.ESS_Pmin[i], model.ess_x[i,t]*model.ESS_Pmax[i], model.ESS_Pmax[i])
 model.ESS_constr_active_power = Constraint(model.Oess, model.OT,
                                     rule=ESS_constr_active_power_rule)  # Minimum, Maximum power from ESS
 
 def ESS_constr_reactive_power_rule(model, i, t):
-    return (-model.ess_x[i,t]*model.ESS_Pmax[i]*tan(acos(model.ESS_pf_min[i])) <= model.Qess[i,t])
+    
+    """
+    Rule for reactive power of ess 
+      - Q<= x*Pmax*tan(acos(fp_min))
+    """
+    return (-model.Qess[i,t] <= model.ess_x[i,t]*model.ESS_Pmax[i]*tan(acos(model.ESS_pf_min[i])))
 model.ESS_constr_reactive_power = Constraint(model.Oess, model.OT,
                                     rule=ESS_constr_reactive_power_rule)  # Minimum, Maximum reactive power from ESS
 
 def ESS_constr_reactive_power_rule_2(model, i, t):
+    """
+    Rule for reactive power of ess 
+       Q<= x*Pmax*tan(acos(fp_min))
+    """
     return (model.Qess[i,t] <= model.ess_x[i,t]*model.ESS_Pmax[i]**tan(acos(model.ESS_pf_min[i])))
 model.ESS_constr_reactive_power_2 = Constraint(model.Oess, model.OT,
                                     rule=ESS_constr_reactive_power_rule_2)  # Minimum, Maximum reactive power from ESS
@@ -192,12 +206,6 @@ def ESS_constr_SOC_departure_rule(model, i):
 model.ESS_constr_SOC_departure = Constraint(model.Oess,
                                     rule=ESS_constr_SOC_departure_rule)  # Minimum, Maximum reactive power from ESS
 
-
-#######################
-# ---- EVs ------- # - TO DO
-
-
-
 #### Cost functions ###########
 
 # Generators
@@ -205,40 +213,66 @@ def DG_cost_rule(model, i):
     return (model.DG_cost[i] == sum(model.DG_a[i] *  (model.dg_x[i,t]*model.DG_Pmax[i]) ** 2 +  model.pt[t] *  model.dg_x[i,t]*model.DG_Pmax[i]  for t in model.OT)
 )
 model.DG_cf = Constraint(model.Odg,
-                                    rule=DG_cost_rule)  
+                         rule=DG_cost_rule)  
 
 # Consumers
 def CONS_cost_rule(model, i):
-    return (model.CONS_cost[i] == sum(sum(model.pt[t]*model.cons_x[i, t]*model.PM[i, t] + model.CONS_an[i] * (model.PM[i, t]) ** 2 * (1 - model.cons_x[i, t]) ** 2 for t in model.OT) for i in model.Ocons )) 
+    return (model.CONS_cost[i] == sum(sum(model.pt[t]*model.cons_x[i, t]*model.PM[i, t] + model.CONS_an[i] * (model.PM[i, t]) ** 2 * (1 - model.cons_x[i, t]) ** 2 for t in model.OT) for i in model.Ocons)) 
 model.CONS_cf = Constraint(model.Ocons,
-                                    rule=CONS_cost_rule)  
+                           rule=CONS_cost_rule)  
 
 # PV 
 def PV_cost_rule(model, i):
     return (model.PV_cost[i] ==  sum((model.pt[t] + model.PV_sn[i])*model.pv_x[i, t]*model.G[i, t] for t in model.OT))
-model.PV_cf = Constraint(model.Opv, rule=PV_cost_rule)  
+model.PV_cf = Constraint(model.Opv,
+                         rule=PV_cost_rule)  
 
 # ESS
 def ESS_cost_rule(model, i):
     return (model.ESS_cost[i] == sum(-model.ESS_dn[i]*(model.ess_x[i,t]*model.ESS_Pmax[i])/model.ESS_EC[i] - model.pt[t]*model.ess_x[i,t]*model.ESS_Pmax[i] for t in model.OT))
 model.ESS_cf = Constraint(model.Oess,
-                                    rule=ESS_cost_rule)  # Minimum, Maximum reactive power from ESS
+                          rule=ESS_cost_rule)  # Minimum, Maximum reactive power from ESS
 
 
 # Constrains of the network
 def active_power_flow_rule(model, k,t):
-        return ((sum(model.P[j,i,t] for j,i in model.Ol if i == k )
-                 + sum(model.dg_x[i,t]*model.DG_Pmax[i] for i in model.Odg if k == i) + sum(model.ess_x[i,t]*model.ESS_Pmax[i] for i in model.Oess if k == i)
-                 + sum(model.pv_x[i,t] * model.G[i,t] for i in model.Opv if k==i) + sum(model.cons_x[i,t] * model.PM[i,t] for i in model.Ocons if k==model.CONS_nodes[i])) == 
-                  sum(model.P[i,j,t] + model.R[i,j]*(model.I[i,j,t]) for i,j in model.Ol if k == i))
+        
+        active_power_parent = sum(model.P[j,i,t] for j,i in model.Ol if i == k )
+        active_power_dg = sum(model.dg_x[i,t]*model.DG_Pmax[i] for i in model.Odg if k == i)
+        active_power_pv = sum(model.pv_x[i,t] * model.G[i,t] for i in model.Opv if k==i)
+        active_power_ess = sum(model.ess_x[i,t]*model.ESS_Pmax[i] for i in model.Oess if k == i)
+        active_power_cons = sum(model.cons_x[i,t] * model.PM[i,t] for i in model.Ocons if k==model.CONS_nodes[i])
+        active_power_child = sum(model.P[i,j,t] + model.R[i,j]*(model.I[i,j,t]) for i,j in model.Ol if k == i)
+
+        return (active_power_parent
+                +active_power_dg
+                +active_power_pv
+                +active_power_ess
+                +active_power_cons
+                -active_power_child==0)
+
 model.active_power_flow = Constraint(model.Ob, model.OT, rule=active_power_flow_rule)   # Active power balance
 
 def reactive_power_flow_rule(model, k,t):
-        return (sum(model.Q[j,i,t] for j,i in model.Ol if i == k ) - sum(model.Q[i,j,t] + model.X[i,j]*(model.I[i,j,t]) for i,j in model.Ol if k == i) +
-                sum(model.Qdg[i,t] for i in model.Odg if k == i) + sum(model.Qess[i,t] for i in model.Oess if k==i)
-                + sum(model.Qpv[i,t] for i in model.Opv if k==i) + sum(model.Qcons[i,t] for i in model.Ocons if k==model.CONS_nodes[i])== 0)   
+        
+        reactive_power_parent = sum(model.Q[j,i,t] for j,i in model.Ol if i == k )
+        reactive_power_dg     = sum(model.Qdg[i,t] for i in model.Odg if k == i)
+        reactive_power_pv     = sum(model.Qpv[i,t] for i in model.Opv if k==i)
+        reactive_power_ess    = sum(model.Qess[i,t] for i in model.Oess if k==i)
+        reactive_power_cons   = sum(model.Qcons[i,t] for i in model.Ocons if k==model.CONS_nodes[i])
+        reactive_power_child  = sum(model.Q[i,j,t] + model.X[i,j]*(model.I[i,j,t]) for i,j in model.Ol if k == i)
+        
+        return (reactive_power_parent
+                +reactive_power_dg
+                +reactive_power_pv
+                +reactive_power_ess
+                +reactive_power_cons
+                +reactive_power_child == 0)
+
+  
 model.reactive_power_flow = Constraint(model.Ob, model.OT, rule=reactive_power_flow_rule) # Reactive power balance
 
+# what is the square voltage here and square current
 def voltage_drop_rule(model, i, j,t):
     return (model.V[i,t] - 2*(model.R[i,j]*model.P[i,j,t] + model.X[i,j]*model.Q[i,j,t]) - (model.R[i,j]**2 + model.X[i,j]**2)*model.I[i,j,t] - model.V[j,t] == 0)
 model.voltage_drop = Constraint(model.Ol, model.OT, rule=voltage_drop_rule) # Voltage drop
@@ -251,6 +285,9 @@ def voltage_limit_rule(model,i,t):
     return (model.Vmin[i] , model.V[i,t], model.Vmax[i])
 model.voltage_limit = Constraint(model.Ob, model.OT, rule = voltage_limit_rule)
 
+def current_limit_rule(model,i,j,t):
+    return (0,model.I[i,j,t],model.Imax[i,j])
+model.current_limit = Constraint(model.Ol, model.OT, rule = current_limit_rule)
 
 # Define Objective Function
 def act_loss(model):

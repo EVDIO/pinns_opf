@@ -2,6 +2,8 @@ from pyomo.environ import *
 from data_opf import get_data_time,get_data_network,get_data_dg,get_data_pv,get_data_cons,get_data_ess
 
 
+
+
 def param_var_time(model,path_time):
 
     """
@@ -28,7 +30,7 @@ def param_var_time(model,path_time):
     return model
 
 def param_var_dg(model,path_dg):
-
+    
     """
     Sets the generator data for the optimization model.
 
@@ -52,15 +54,14 @@ def param_var_dg(model,path_dg):
     model.DG_fp_min = Param(model.Odg, initialize=DG_fp_min, mutable=True)  # minimum power factor DGs
     model.DG_ramp_up = Param(model.Odg, initialize=DG_ramp_up, mutable=True)  # ramp up constraint
     model.DG_ramp_dw = Param(model.Odg, initialize=DG_ramp_dw, mutable=True)  # ramp down constraint
-
-    # Variables
-    model.dg_x =  Var(model.Odg, model.OT, initialize=1.0, within=NonNegativeReals)    # multiplier demands generators (0,1)
-    model.Qdg = Var(model.Odg, model.OT, within=Reals) # reactive power for DGs 
-    model.DG_cost = Var(model.Odg, initialize=1.0)    # cost DGs
     model.DG_a = Param(model.Odg, initialize=DG_a, mutable=True)  # quadratic coefficient cost DGs
 
-    return model
+    # Variables
+    model.dg_x =  Var(model.Odg, model.OT, initialize=1.0, within=NonNegativeReals)  # decision variable for active power of generators (0,1)
+    model.Qdg = Var(model.Odg, model.OT, within=Reals) # reactive power for DGs 
+    model.DG_cost = Var(model.Odg, initialize=1.0, within=NonNegativeReals)    # cost DGs
 
+    return model
 
 def param_var_con(model,path_con,path_time):
 
@@ -93,7 +94,7 @@ def param_var_con(model,path_con,path_time):
     # Variables
     model.cons_x = Var(model.Ocons, model.OT, initialize=1.0, within=NonNegativeReals)    # Multiplier demands CONSUMERS (0,1)
     model.Qcons = Var(model.Ocons, model.OT, within=NonNegativeReals) # Reactive power for CONSUMERS
-    model.CONS_cost = Var(model.Ocons, initialize=1.0) 
+    model.CONS_cost = Var(model.Ocons, initialize=1.0, within=NonNegativeReals) 
 
     return model
 
@@ -120,14 +121,13 @@ def param_var_pv(model,path_pv,path_time):
     model.PV_Pmin = Param(model.Opv, initialize=PV_Pmin, mutable=True)  # Minimum power PVs
     model.PV_pf = Param(model.Opv, initialize=PV_pf, mutable=True)  # Constant power factor PVs
     model.G = Param(model.Opv, model.OT, initialize=G, mutable=True) # Maximum active power for PVs 
-    model.PV_sn = Param(model.Opv, initialize=PV_sn, mutable=True)  # Compensation RES
+    model.PV_sn = Param(model.Opv, initialize=PV_sn, mutable=True)  # Compensation PV
 
     model.pv_x = Var(model.Opv, model.OT, initialize=1.0, within=NonNegativeReals)    # Multiplier demands PV (0,1)
     model.Qpv = Var(model.Opv, model.OT, within=Reals)
-    model.PV_cost = Var(model.Opv, initialize=1.0)    # Multiplier demands CONSUMERS (0,1)
+    model.PV_cost = Var(model.Opv, initialize=1.0,within=NonNegativeReals)    
 
     return model
-
 
 def param_var_ess(model,path_ess):
 
@@ -145,6 +145,9 @@ def param_var_ess(model,path_ess):
     # Get ESS data
     Oess,ESS_Pmin,ESS_Pmax,ESS_pf_min,ESS_EC,ESS_SOC_ini,ESS_SOC_end,ESS_dn,ESS_SOC_min,ESS_SOC_max = get_data_ess(path_ess)
 
+
+    model.Oess = Set(initialize=Oess)
+
     # Parameters
     model.ESS_Pmin = Param(model.Oess, initialize=ESS_Pmin, mutable=True)  # Minimum power ESS
     model.ESS_Pmax = Param(model.Oess, initialize=ESS_Pmax, mutable=True)  # Maximum power ESS
@@ -158,14 +161,46 @@ def param_var_ess(model,path_ess):
     
     # Variables 
     model.ess_x = Var(model.Oess, model.OT, initialize=1.0, within=NonNegativeReals)    # Multiplier demands PV (0,1)
-    model.Qess = Var(model.Oess,model.OT, initialize=0.0) 
-    model.SOC = Var(model.Oess,model.OT, initialize=1.0)    # Reactive power from ESS
-    model.ESS_cost = Var(model.Oess, initialize=1.0)    # Reactive power from ESS
+    model.Qess = Var(model.Oess,model.OT, initialize=0.0, within=Reals) 
+    model.SOC = Var(model.Oess,model.OT, initialize=1.0, within=NonNegativeReals)    # Reactive power from ESS
+    model.ESS_cost = Var(model.Oess, initialize=1.0, within=NonNegativeReals)    # Reactive power from ESS
 
     return model
 
+def param_var_ev(model):
+    return model
 
+def param_var_network(model,path_bus,path_line):
 
+    """
+    Sets the network data for the optimization model.
 
-def get_param_var_ev(model):
+    Args:
+        model: Pyomo abstract model object
+        path_bus (str): Path to the bus data file
+        path_line (str): Path to the line data file
+
+    Returns:
+        Pyomo abstract model object with network data set as parameters and variables
+    """
+    
+    Ob,Ol,Vmin,Vmax,R,X,Imax = get_data_network(path_bus,path_line)
+    
+    # define Sets
+    model.Ob = Set(initialize=Ob)
+    model.Ol = Set(initialize=Ol)
+    
+    # define parameters
+    model.Vmin = Param(model.Ob, initialize=Vmin, mutable=True)   # minimum voltage magnitude
+    model.Vmax = Param(model.Ob, initialize=Vmax, mutable=True)   # maximum voltage magnitude
+    model.R = Param(model.Ol, initialize=R, mutable=True) # line resistance
+    model.X = Param(model.Ol, initialize=X, mutable=True) # line reactance
+    model.Imax = Param(model.Ol, initialize=Imax, mutable=True) # maximum current magnitude
+
+    # define variables
+    model.P = Var(model.Ol, model.OT, initialize=0, within=NonNegativeReals) # acive power flowing in lines
+    model.Q = Var(model.Ol, model.OT, initialize=0, within=Reals) # reacive power flowing in lines
+    model.I  = Var(model.Ol, model.OT, initialize=0, within=NonNegativeReals) # current of lines
+    model.V = Var(model.Ob, model.OT, initialize=0.0, within=NonNegativeReals) # voltage in bus
+
     return model

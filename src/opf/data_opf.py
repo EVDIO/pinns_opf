@@ -43,8 +43,10 @@ def get_data_network(path_bus,path_line):
     # Branches
     Ol = {(df_line.loc[i, 'from_bus'], df_line.loc[i, 'to_bus']) for i in df_line.index}  # nodes of lines
     R = {(df_line.loc[i, 'from_bus'], df_line.loc[i, 'to_bus']): df_line.loc[i, 'r_ohm_per_km']  for i in df_line.index}  # resistance of lines [ohm/km]  note: line is 1km                             # Branch PVistance in pu
-    X = {(df_line.loc[i, 'from_bus'], df_line.loc[i, 'to_bus']): df_line.loc[i, 'x_ohm_per_km'] for i in df_line.index}   # impedance of line [ohm/km]
+    X = {(df_line.loc[i, 'from_bus'], df_line.loc[i, 'to_bus']): df_line.loc[i, 'x_ohm_per_km'] for i in df_line.index}   # reactance of line [ohm/km]
     Imax = {(df_line.loc[i, 'from_bus'], df_line.loc[i, 'to_bus']): df_line.loc[i, 'max_i_ka'] for i in df_line.index}  # maximum current [kA]
+
+    Ol = sorted(Ol, key=lambda x: x[0])
 
     return [Ob,Ol,Vmin,Vmax,R,X,Imax]
 
@@ -132,7 +134,7 @@ def get_data_ess(path_ess):
     :param path_ess: str - path to the csv file containing ess data
     :return: tuple - a tuple containing lists and dictionaries of relevant ESS data
     """
-    
+
     # read csv to dataframe
     df_ess = pd.read_csv(path_ess)
 

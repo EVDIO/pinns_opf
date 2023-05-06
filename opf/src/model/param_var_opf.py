@@ -1,5 +1,5 @@
 from pyomo.environ import *
-from data_opf import get_data_time,get_data_network,get_data_dg,get_data_pv,get_data_cons,get_data_ess
+from data_opf import get_data_time,get_data_network,get_data_dg,get_data_pv,get_data_cons,get_data_ess,get_data_ev
 
 
 
@@ -57,7 +57,7 @@ def param_var_dg(model,path_dg):
     model.DG_a = Param(model.Odg, initialize=DG_a, mutable=True)  # quadratic coefficient cost DGs
 
     # Variables
-    model.dg_x =  Var(model.Odg, model.OT, initialize=1.0, within=NonNegativeReals)  # decision variable for active power of generators (0,1)
+    model.dg_x =  Var(model.Odg, model.OT, initialize=1.0, within=NonNegativeReals, bounds=(0, 1))  # decision variable for active power of generators (0,1)
     model.Qdg = Var(model.Odg, model.OT, within=Reals) # reactive power for DGs 
     model.DG_cost = Var(model.Odg, initialize=1.0, within=NonNegativeReals)    # cost DGs
 
@@ -82,9 +82,9 @@ def param_var_con(model,path_con,path_time):
 
     # Set nodes
     model.Ocons = Set(initialize=Ocons)
+    model.CONS_nodes = Set(initialize=CONS_nodes)
 
-    # Parameters
-    model.CONS_nodes = Param(model.Ocons, initialize=CONS_nodes, mutable=False) # Reactive power bus demand
+    # Parameters 
     model.CONS_Pmin = Param(model.Ocons, initialize=CONS_Pmin, mutable=True)  # Minimum power CONS
     model.CONS_Pmax = Param(model.Ocons, initialize=CONS_Pmax, mutable=True)  # Maximum power CONS
     model.CONS_pf = Param(model.Ocons, initialize=CONS_pf, mutable=True)  # Constant power factor CONS
@@ -92,7 +92,7 @@ def param_var_con(model,path_con,path_time):
     model.CONS_an = Param(model.Ocons, initialize=CONS_an, mutable=True)  # quadratic component cost CONS
 
     # Variables
-    model.cons_x = Var(model.Ocons, model.OT, initialize=1.0, within=NonNegativeReals)    # Multiplier demands CONSUMERS (0,1)
+    model.cons_x = Var(model.Ocons, model.OT, initialize=1.0, within=NonNegativeReals,bounds=(0, 1))    # Multiplier demands CONSUMERS (0,1)
     model.Qcons = Var(model.Ocons, model.OT, within=NonNegativeReals) # Reactive power for CONSUMERS
     model.CONS_cost = Var(model.Ocons, initialize=1.0, within=NonNegativeReals) 
 
@@ -123,7 +123,7 @@ def param_var_pv(model,path_pv,path_time):
     model.G = Param(model.Opv, model.OT, initialize=G, mutable=True) # Maximum active power for PVs 
     model.PV_sn = Param(model.Opv, initialize=PV_sn, mutable=True)  # Compensation PV
 
-    model.pv_x = Var(model.Opv, model.OT, initialize=1.0, within=NonNegativeReals)    # Multiplier demands PV (0,1)
+    model.pv_x = Var(model.Opv, model.OT, initialize=1.0, within=NonNegativeReals,bounds=(0, 1))    # Multiplier demands PV (0,1)
     model.Qpv = Var(model.Opv, model.OT, within=Reals)
     model.PV_cost = Var(model.Opv, initialize=1.0,within=NonNegativeReals)    
 
@@ -160,14 +160,41 @@ def param_var_ess(model,path_ess):
     model.ESS_EC = Param(model.Oess, initialize=ESS_EC, mutable=True)  # Energy capacity ESS
     
     # Variables 
-    model.ess_x = Var(model.Oess, model.OT, initialize=1.0, within=NonNegativeReals)    # Multiplier demands PV (0,1)
+    model.ess_x = Var(model.Oess, model.OT, initialize=1.0, within=NonNegativeReals,bounds=(0, 1))    # Multiplier demands PV (0,1)
     model.Qess = Var(model.Oess,model.OT, initialize=0.0, within=Reals) 
     model.SOC = Var(model.Oess,model.OT, initialize=1.0, within=NonNegativeReals)    # Reactive power from ESS
     model.ESS_cost = Var(model.Oess, initialize=1.0, within=NonNegativeReals)    # Reactive power from ESS
 
     return model
 
-def param_var_ev(model):
+def param_var_ev(model,path_ev):
+
+    Oev,EV_nodes,EV_Pmin,EV_Pmax,EV_Pnom,EV_pf_min,EV_EC,EV_SOC_ini,EV_SOC_end,EV_SOC_min,EV_SOC_max,EV_dn,EV_wn,t_arr,t_dep = get_data_ev(path_ev)
+
+    model.Oev = Set(initialize=Oev)
+    model.EV_nodes = Set(initialize=EV_nodes)
+
+    # EVs
+    model.EV_SOC_end = Param(model.Oev, initialize=EV_SOC_end, mutable=True)  # Departure SOC EV
+    model.EV_SOC_ini = Param(model.Oev, initialize=EV_SOC_ini, mutable=True)  # Arrival SOC EV
+    model.EV_wn = Param(model.Oev, initialize=EV_wn, mutable=True)  # Cost EV
+    model.EV_pf_min = Param(model.Oev, initialize=EV_pf_min, mutable=True)  # Minimum power factor EV
+    model.EV_dn = Param(model.Oev, initialize=EV_dn, mutable=True)  # Cost  EV
+    model.EV_Pmax = Param(model.Oev, initialize=EV_Pmax, mutable=True)  # Maximum power EV
+    model.EV_Pmin = Param(model.Oev, initialize=EV_Pmin, mutable=True)  # Minimum power EV
+    model.EV_Pnom = Param(model.Oev, initialize=EV_Pnom, mutable=True)  # Nominal power EV
+    model.EV_EC = Param(model.Oev, initialize=EV_EC, mutable=True)  # Energy capacity EV
+    model.EV_SOC_min = Param(model.Oev, initialize=EV_SOC_min, mutable=True)  # Energy capacity EV
+    model.EV_SOC_max = Param(model.Oev, initialize=EV_SOC_max, mutable=True)  # Energy capacity EV
+    model.t_arr = Param(model.Oev, initialize=t_arr, mutable=True)  # Energy capacity EV
+    model.t_dep = Param(model.Oev, initialize=t_dep, mutable=True)  # Energy capacity EV
+
+    model.Pev = Var(model.Oev, model.OT, initialize=0.0)    # Active power from EV
+    model.Qev = Var(model.Oev, model.OT, initialize=0.0)    # Active power from EV
+    model.SOC_EV = Var(model.Oev, model.OT, initialize=0.0)    # SOC from EV
+    model.E_non_served = Var(model.Oev, initialize=0.0, within=NonNegativeReals)    # SOC from EV
+    model.EV_cost = Var(model.Oev, initialize=1.0)    # SOC from EV
+
     return model
 
 def param_var_network(model,path_bus,path_line):

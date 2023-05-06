@@ -111,7 +111,7 @@ def get_data_cons(path_con,path_time):
 
     # consumers 
     Ocons = [i+1 for i in df_con.index]                                       # index of consumers
-    CONS_nodes = {Ocons[i]: df_con.loc[i, 'Node_cons'] for i in df_con.index} # nodes with consumers
+    CONS_nodes = {(Ocons[i], df_con.loc[i, 'Node_cons']) for i in df_con.index} # nodes with consumers
     CONS_Pmin = {Ocons[i]: df_con.loc[i, 'CONS_Pmin'] for i in df_con.index}  # minimum power consumers [mw]
     CONS_Pmax = {Ocons[i]: df_con.loc[i, 'CONS_Pmax'] for i in df_con.index}  # maximum power consumers [mw]
     CONS_an = {Ocons[i]: df_con.loc[i, 'CONS_an'] for i in df_con.index}      # instantaneous cost load shifted
@@ -124,6 +124,8 @@ def get_data_cons(path_con,path_time):
     OT = [df_time.loc[i, 'T'] for i in df_time.index] # list of time points
     PM = {(Ocons[i], OT[t]): df_time['PD_{}_{}'.format(df_con['Node_cons'][i],i)][t] for i in df_con.index for t in df_time.index} # active power demand [mW]
     QM = {(Ocons[i], OT[t]): df_time['QD_{}_{}'.format(df_con['Node_cons'][i],i)][t] for i in df_con.index for t in df_time.index} # reactive power demand [mW]
+
+    CONS_nodes = sorted(CONS_nodes, key=lambda x: x[0])
 
     return [Ocons,CONS_nodes,CONS_Pmin,CONS_Pmax,CONS_pf,CONS_an,CONS_bn,PM,QM,PD,QD]
 
@@ -155,20 +157,28 @@ def get_data_ess(path_ess):
 
 ######### TO DO #################################3
 
+def get_data_ev(path_ev):
 
-# # Electric vehicles (EV)
-# Oev = [i+1 for i in df_ev.index]                                      # Index EVs
-# EV_nodes = {i:df_ev.loc[i-1, 'EV_node'] for i in Oev}                                      # Nodes with EVs
-# EV_Pmin = {i:df_ev.loc[i-1, 'EV_Pmin'] for i in Oev}                                  # Minimum power EVs
-# EV_Pmax = {i:df_ev.loc[i-1, 'EV_Pmax'] for i in Oev}                                # Maximum power EVs
-# EV_Pnom = {i:df_ev.loc[i-1, 'EV_Pnom']/ (Snom) for i in Oev}                               # Nominal power EVs
-# EV_pf_min = {i:df_ev.loc[i-1, 'EV_pf_min'] for i in Oev}                              # Minimum power factor EVs
-# EV_EC = {i:df_ev.loc[i-1, 'EV_EC']/ (Snom) for i in Oev}                                      # Energy capacity EVs
-# EV_SOC_ini = {i:df_ev.loc[i-1, 'EV_SOC_ini']/100 for i in Oev}                            # Arrive state of charge
-# EV_SOC_end = {i:df_ev.loc[i-1, 'EV_SOC_end']/100 for i in Oev}                            # Departure state of charge
-# EV_SOC_min = {i: df_ev.loc[i-1, 'EV_SOC_min']/100 for i in Oev}                        # Minimum state of charge ESS
-# EV_SOC_max = {i: df_ev.loc[i-1, 'EV_SOC_max']/100 for i in Oev}                        # Maximum state of charge ESS
-# EV_dn = {i:df_ev.loc[i-1, 'EV_dn'] for i in Oev}                                      # Battery  degradation cost
-# EV_wn = {i:df_ev.loc[i-1, 'EV_wn'] for i in Oev}                                      # Penalty  cost  for  not  having  their  battery  charged  at  the desired level
-# t_arr = {i:df_ev.loc[i-1, 't_arr'] for i in Oev}                                      # Time of arrival
-# t_dep = {i:df_ev.loc[i-1, 't_dep'] for i in Oev}                                      # Time of departure
+    # read csv to dataframe
+    df_ev = pd.read_csv(path_ev)
+
+    # Electric vehicles (EV)
+    Oev = [i+1 for i in df_ev.index]                                      # Index EVs
+    EV_nodes = {(i,df_ev.loc[i-1, 'EV_node']) for i in Oev}                                      # Nodes with EVs
+    EV_Pmin = {i:df_ev.loc[i-1, 'EV_Pmin'] for i in Oev}                                  # Minimum power EVs
+    EV_Pmax = {i:df_ev.loc[i-1, 'EV_Pmax'] for i in Oev}                                # Maximum power EVs
+    EV_Pnom = {i:df_ev.loc[i-1, 'EV_Pnom'] for i in Oev}                               # Nominal power EVs
+    EV_pf_min = {i:df_ev.loc[i-1, 'EV_pf_min'] for i in Oev}                              # Minimum power factor EVs
+    EV_EC = {i:df_ev.loc[i-1, 'EV_EC'] for i in Oev}                                      # Energy capacity EVs
+    EV_SOC_ini = {i:df_ev.loc[i-1, 'EV_SOC_ini']/100 for i in Oev}                            # Arrive state of charge
+    EV_SOC_end = {i:df_ev.loc[i-1, 'EV_SOC_end']/100 for i in Oev}                            # Departure state of charge
+    EV_SOC_min = {i: df_ev.loc[i-1, 'EV_SOC_min']/100 for i in Oev}                        # Minimum state of charge ESS
+    EV_SOC_max = {i: df_ev.loc[i-1, 'EV_SOC_max']/100 for i in Oev}                        # Maximum state of charge ESS
+    EV_dn = {i:df_ev.loc[i-1, 'EV_dn'] for i in Oev}                                      # Battery  degradation cost
+    EV_wn = {i:df_ev.loc[i-1, 'EV_wn'] for i in Oev}                                      # Penalty  cost  for  not  having  their  battery  charged  at  the desired level
+    t_arr = {i:df_ev.loc[i-1, 't_arr'] for i in Oev}                                      # Time of arrival
+    t_dep = {i:df_ev.loc[i-1, 't_dep'] for i in Oev}                                      # Time of departure
+
+    EV_nodes = sorted(EV_nodes, key=lambda x: x[0])
+
+    return [Oev,EV_nodes,EV_Pmin,EV_Pmax,EV_Pnom,EV_pf_min,EV_EC,EV_SOC_ini,EV_SOC_end,EV_SOC_min,EV_SOC_max,EV_dn,EV_wn,t_arr,t_dep]

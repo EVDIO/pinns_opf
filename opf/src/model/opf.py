@@ -10,12 +10,12 @@ from param_var_opf import *
 pth = r'C:\Users\Dell\Documents\GitHub\PINNS_OPF\data\interim'
 con = r'\asset_cons.csv'
 ess = r'\asset_ess.csv'
+ev = r'\asset_ev.csv'
 dg = r'\asset_gen.csv'
 pv  = r'\asset_pv.csv'
 bus = r'\bus5.csv'
 line= r'\line5.csv'
 time= r'\time_slots.csv'
-
 
 # Initiate model
 model = ConcreteModel()
@@ -24,22 +24,21 @@ model = ConcreteModel()
 model = param_var_time(model=model, path_time=pth+time)
 # Set variables and parameters for dg data
 model = param_var_dg(model=model, path_dg=pth+dg)
-# Set variables and parameters for time data
+# Set variables and parameters for comsumers
 model = param_var_con(model=model, path_con=pth+con,
                       path_time=pth+time)
-# Set variables and parameters for time data
+# Set variables and parameters for pv
 model = param_var_pv(model=model, path_pv=pth+pv,
                      path_time=pth+time)
-# Set variables and parameters for time data
+# Set variables and parameters for ess
 model = param_var_ess(model=model, path_ess=pth+ess)
-# Set variables and parameters for time data
+# Set variables and parameters for ev
+model = param_var_ev(model=model, path_ev=pth+ev)
+# Set variables and parameters for network
 model = param_var_network(model=model, path_bus=pth+bus,
                           path_line=pth+line)
 
-
-
 # Set rules for DGs
-
 def DG_decision_var_rule(model,i,t):
     """
     decision variable should be bounded (0,1)
@@ -206,6 +205,46 @@ def ESS_constr_SOC_departure_rule(model, i):
 model.ESS_constr_SOC_departure = Constraint(model.Oess,
                                     rule=ESS_constr_SOC_departure_rule)  # Minimum, Maximum reactive power from ESS
 
+#####################
+# ----- EVs -------- #
+def EV_constr_active_power_rule(model, i, t):
+    if model.t_arr[i].value <= t <= model.t_dep[i].value:
+        return (model.EV_Pmin[i]*model.EV_Pnom[i], model.Pev[i,t], model.EV_Pmax[i]*model.EV_Pnom[i])
+    else:
+        return (model.Pev[i, t] == 0.0)
+model.EV_constr_active_power = Constraint(model.Oev, model.OT,
+                                    rule=EV_constr_active_power_rule)  # Minimum, Maximum power from ESS
+
+def EV_constr_reactive_power_rule(model, i, t):
+    return (-model.Pev[i,t]*tan(acos(model.EV_pf_min[i])) <= model.Qev[i,t])
+model.EV_constr_reactive_power = Constraint(model.Oev, model.OT,
+                                    rule=EV_constr_reactive_power_rule)  # Minimum, Maximum reactive power from ESS
+
+def EV_constr_reactive_power_rule_2(model, i, t):
+    return (model.Qev[i,t] <= model.Pev[i,t]*tan(acos(model.EV_pf_min[i])))
+model.EV_constr_reactive_power_2 = Constraint(model.Oev, model.OT,
+                                    rule=EV_constr_reactive_power_rule_2)  # Minimum, Maximum reactive power from ESS
+#
+#
+def EV_constr_SOC_1_rule(model, i, t):
+    if t <= model.t_arr[i].value:
+        return (model.SOC_EV[i,t] == model.EV_SOC_ini[i] - model.Delta_t[t]/model.EV_EC[i]*model.Pev[i,t])
+    else:
+        return (model.SOC_EV[i,t] == model.SOC_EV[i,t-1] - model.Delta_t[t]/model.EV_EC[i]*model.Pev[i,t])
+model.EV_constr_SOC_1 = Constraint(model.Oev, model.OT,
+                                    rule=EV_constr_SOC_1_rule)  # Minimum, Maximum reactive power from ESS
+
+def EV_constr_SOC_2_rule(model, i, t):
+    return (model.EV_SOC_min[i], model.SOC_EV[i,t], model.EV_SOC_max[i])
+model.EV_constr_SOC_2 = Constraint(model.Oev, model.OT,
+                                    rule=EV_constr_SOC_2_rule)  # Minimum, Maximum reactive power from ESS
+
+def EV_constr_SOC_departure_rule(model, i):
+    return (model.SOC_EV[i,model.t_dep[i].value] + model.E_non_served[i] >= model.EV_SOC_end[i]) #
+model.EV_constr_SOC_departure = Constraint(model.Oev,
+                                    rule=EV_constr_SOC_departure_rule)  # Minimum, Maximum reactive power from ESS
+
+
 #### Cost functions ###########
 
 # Generators
@@ -233,6 +272,13 @@ def ESS_cost_rule(model, i):
 model.ESS_cf = Constraint(model.Oess,
                           rule=ESS_cost_rule)  # Minimum, Maximum reactive power from ESS
 
+# EV
+def EV_cost_rule(model, i):
+    return (model.EV_cost[i] == sum(-model.EV_dn[i]*(model.Pev[i,t])/model.EV_EC[i] - model.pt[t]*model.Pev[i,t] for t in model.OT)
+            + model.EV_wn[i]* (model.E_non_served[i]))
+model.EV_cf = Constraint(model.Oev,
+                                    rule=EV_cost_rule)  # Minimum, Maximum reactive power from ESS
+
 
 # Constrains of the network
 def active_power_flow_rule(model, k,t):
@@ -240,15 +286,17 @@ def active_power_flow_rule(model, k,t):
         active_power_parent = sum(model.P[j,i,t] for j,i in model.Ol if i == k )
         active_power_dg = sum(model.dg_x[i,t]*model.DG_Pmax[i] for i in model.Odg if k == i)
         active_power_pv = sum(model.pv_x[i,t] * model.G[i,t] for i in model.Opv if k==i)
-        active_power_ess = sum(model.ess_x[i,t]*model.ESS_Pmax[i] for i in model.Oess if k == i)
-        active_power_cons = sum(model.cons_x[i,t] * model.PM[i,t] for i in model.Ocons if k==model.CONS_nodes[i])
-        active_power_child = sum(model.P[i,j,t] + model.R[i,j]*(model.I[i,j,t]) for i,j in model.Ol if k == i)
+        active_power_ess = sum(model.ess_x[i,t]*model.ESS_Pmax[i] for i in model.Oess if k==i)
+        active_power_cons = sum(model.cons_x[i,t] * model.PM[i,t] for i,m in model.CONS_nodes if k==m)
+        active_power_ev = sum(model.Pev[i,t] for i in model.Oev for i,m in model.EV_nodes if k==m)
+        active_power_child = sum(model.P[i,j,t] + model.R[i,j]*(model.I[i,j,t]) for i,j in model.Ol if k==i)
 
         return (active_power_parent
                 +active_power_dg
                 +active_power_pv
                 +active_power_ess
-                +active_power_cons
+                #+active_power_cons
+                +active_power_ev
                 -active_power_child==0)
 
 model.active_power_flow = Constraint(model.Ob, model.OT, rule=active_power_flow_rule)   # Active power balance
@@ -259,18 +307,19 @@ def reactive_power_flow_rule(model, k,t):
         reactive_power_dg     = sum(model.Qdg[i,t] for i in model.Odg if k == i)
         reactive_power_pv     = sum(model.Qpv[i,t] for i in model.Opv if k==i)
         reactive_power_ess    = sum(model.Qess[i,t] for i in model.Oess if k==i)
-        reactive_power_cons   = sum(model.Qcons[i,t] for i in model.Ocons if k==model.CONS_nodes[i])
+        reactive_power_cons   = sum(model.Qcons[i,t] for i,m in model.CONS_nodes if k==m)
+        reactive_power_pv     = sum(model.Qev[i,t]  for i,m in model.EV_nodes if k==m)
         reactive_power_child  = sum(model.Q[i,j,t] + model.X[i,j]*(model.I[i,j,t]) for i,j in model.Ol if k == i)
         
         return (reactive_power_parent
                 +reactive_power_dg
                 +reactive_power_pv
                 +reactive_power_ess
-                +reactive_power_cons
+                #+reactive_power_cons
                 +reactive_power_child == 0)
 
   
-model.reactive_power_flow = Constraint(model.Ob, model.OT, rule=reactive_power_flow_rule) # Reactive power balance
+# model.reactive_power_flow = Constraint(model.Ob, model.OT, rule=reactive_power_flow_rule) # Reactive power balance
 
 # what is the square voltage here and square current
 def voltage_drop_rule(model, i, j,t):
@@ -292,14 +341,21 @@ model.current_limit = Constraint(model.Ol, model.OT, rule = current_limit_rule)
 # Define Objective Function
 def act_loss(model):
     return  (sum(model.CONS_cost[i] for i in model.Ocons)
-            + sum(model.DG_cost[i] for i in model.Odg)
+            +sum(model.DG_cost[i] for i in model.Odg)
             + sum(model.ESS_cost[i] for i in model.Oess)
-            - sum(model.PV_cost[i] for i in model.Opv))
+            + sum(model.PV_cost[i] for i in model.Opv)
+            + sum(model.EV_cost[i] for i in model.Oev))
 model.obj = Objective(rule=act_loss)
 
 # Run model 
-solver = SolverFactory("gurobi")
-solver.options['NonConvex'] = 2
-solver.solve(model)
-model.display()
+# solver = SolverFactory("gurobi")
+# #solver.options['NonConvex'] = 2
+# solver.solve(model)
 
+
+
+solver = SolverFactory('ipopt')  # couenne
+
+# Solve
+result = solver.solve(model, tee=True)
+model.display()

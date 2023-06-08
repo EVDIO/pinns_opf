@@ -1,7 +1,5 @@
 from pyomo.environ import *
-from data_opf import get_data_time,get_data_network,get_data_dg,get_data_pv,get_data_cons,get_data_ess,get_data_ev
-
-
+from .data_opf import get_data_time,get_data_network,get_data_dg,get_data_pv,get_data_cons,get_data_ess,get_data_ev
 
 
 def param_var_time(model,path_time):
@@ -58,7 +56,7 @@ def param_var_dg(model,path_dg):
 
     # Variables
     model.dg_x =  Var(model.Odg, model.OT, initialize=1.0, within=NonNegativeReals, bounds=(0, 1))  # decision variable for active power of generators (0,1)
-    model.Qdg = Var(model.Odg, model.OT, within=Reals) # reactive power for DGs 
+    model.Qdg = Var(model.Odg, model.OT,initialize=0.0, within=Reals) # reactive power for DGs 
     model.DG_cost = Var(model.Odg, initialize=1.0, within=NonNegativeReals)    # cost DGs
 
     return model
@@ -93,8 +91,10 @@ def param_var_con(model,path_con,path_time):
 
     # Variables
     model.cons_x = Var(model.Ocons, model.OT, initialize=1.0, within=NonNegativeReals,bounds=(0, 1))    # Multiplier demands CONSUMERS (0,1)
-    model.Qcons = Var(model.Ocons, model.OT, within=NonNegativeReals) # Reactive power for CONSUMERS
+    model.Qcons = Var(model.Ocons, model.OT,initialize=1.0, within=NonNegativeReals) # Reactive power for CONSUMERS
     model.CONS_cost = Var(model.Ocons, initialize=1.0, within=NonNegativeReals) 
+
+    model.Ti = Var(model.Ocons, initialize=20.0, bounds = (5,35))
 
     return model
 
@@ -124,7 +124,7 @@ def param_var_pv(model,path_pv,path_time):
     model.PV_sn = Param(model.Opv, initialize=PV_sn, mutable=True)  # Compensation PV
 
     model.pv_x = Var(model.Opv, model.OT, initialize=1.0, within=NonNegativeReals,bounds=(0, 1))    # Multiplier demands PV (0,1)
-    model.Qpv = Var(model.Opv, model.OT, within=Reals)
+    model.Qpv = Var(model.Opv, model.OT,initialize=1.0, within=Reals)
     model.PV_cost = Var(model.Opv, initialize=1.0,within=NonNegativeReals)    
 
     return model
@@ -229,5 +229,59 @@ def param_var_network(model,path_bus,path_line):
     model.Q = Var(model.Ol, model.OT, initialize=0, within=Reals) # reacive power flowing in lines
     model.I  = Var(model.Ol, model.OT, initialize=0, within=NonNegativeReals) # current of lines
     model.V = Var(model.Ob, model.OT, initialize=0.0, within=NonNegativeReals) # voltage in bus
+
+    return model
+
+
+
+def param_var_temp(model):
+    Ri = 46.848    # Resistance between indoor air and interior walls
+    Rim = 1.809    # Resistance between indoor air and house envelop
+    Ra = 8.021     # Resistance between indoor air and outdoor
+    Ram = 0.0846   # Resistance between house envelope and outdoor
+
+    Ci = 8.120      # heat capacity of indoor air
+    Cim = 0.00553   # heat capacity of interior walls
+    Com = 292.905   # heat capacity of house envelope
+
+    Ap = 20.212     # window area
+    p = 1          # fraction
+
+
+    # Define the matrices A and B
+    A = {
+    (1, 1): -1/(Ci) - 1/(Ci * Ra) - 1/(Ci * Ri) - 1/(Ci * Rim),
+    (2, 1): 1/(Cim * Ri),
+    (3, 1): Com * Rim,
+    (1, 2): 0.0,
+    (2, 2): -1/(Cim * Ri),
+    (3, 2): 0.0,
+    (1, 3): 0.0,
+    (2, 3): 0.0,
+    (3, 3): -1/(Com * Rim) - 1/(Com * Ram)
+    }
+
+    B = {
+    (1, 1): 1/(Ci * Ra),
+    (1, 2): Ap * (1 - p) / Ci,
+    (1, 3): 1/Ci,
+    (2, 1): 0.0,
+    (2, 2): Ap * p / Cim,
+    (2, 3): 0.0,
+    (3, 1): 1/(Com * Ram),
+    (3, 2): 0.0,
+    (3, 3): 0.0
+    }
+
+    k = [1,2,3]
+    # define Sets
+    model.k = Set(initialize=k)
+
+    model.A = Param(model.k*model.k, initialize=A, mutable=True)   
+    model.B = Param(model.k*model.k, initialize=B, mutable=True)  
+
+    # Define the variables
+    model.x = Var(model.Ocons,model.OT,k,initialize=1.0, within=Reals)
+    model.u = Var(model.Ocons,model.OT,k,initialize=1.0, within=Reals)
 
     return model

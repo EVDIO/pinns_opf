@@ -1,9 +1,9 @@
+import datetime
+from tqdm import tqdm
 import torch
 import torch.nn.functional as F
 #from torch_geometric_temporal.nn.recurrent import DCRNN,GCLSTM
 from torch_geometric_temporal.nn.recurrent import GConvLSTM
-from tqdm import tqdm
-import datetime
 
 
 class RecurrentGCN(torch.nn.Module):

@@ -1,103 +1,60 @@
-import torch
-from torch_geometric.data import DataLoader
-from torch.optim import Adam
-from torch.nn import MSELoss
-from tqdm import tqdm
-from model import HeteroGCLSTM
-from torch_geometric_temporal.signal import StaticHeteroGraphTemporalSignal
-from torch_geometric_temporal.signal import temporal_signal_split
+import os
+import sys
 import pickle
+import logging
+import time
+import torch
+import torch.nn.functional as F
+from torch_geometric_temporal.signal import StaticGraphTemporalSignal
+from torch_geometric_temporal.signal import temporal_signal_split
 
-# Define the file path of the saved dictionaries
-file_path = r'C:\Users\Dell\Documents\GitHub\pinns_opf\data\processed\dictionaries.pkl'
-
-# Load the dictionaries from the file
-with open(file_path, 'rb') as file:
-    data_dict = pickle.load(file)
-
-# Unpack the dictionaries
-edge_index_dict = data_dict['edge_index_dict']
-feature_dicts = data_dict['feature_dicts']
-target_dicts = data_dict['target_dicts']
+from model import RecurrentGCN
 
 
-# Define the file path of the saved metadata
-file_path = r'C:\Users\Dell\Documents\GitHub\pinns_opf\data\processed\metadata.pkl'
+start_time = time.time()
 
-# Load the metadata from the file
-with open(file_path, 'rb') as file:
-    metadata = pickle.load(file)
-    
-graph_snapshots = StaticHeteroGraphTemporalSignal(edge_index_dict, None, feature_dicts, target_dicts)
+#now we will Create and configure logger 
+logging.basicConfig(filename="std.log", 
+                format='%(asctime)s %(message)s', 
+                filemode='w') 
 
-train_dataset, test_dataset = temporal_signal_split(graph_snapshots, train_ratio=0.8)
-# Set device
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#Let us Create an object 
+logger=logging.getLogger()
+# Set log level to DEBUG
+logger.setLevel(logging.DEBUG)
 
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.DEBUG)
 
-in_channels_dict = {
-    "cons": 2,
-    "nodes": 1  
-}
-    
-h_dict = {
-    "cons": 0,
-    "nodes": 0
-}
-
-c_dict = {
-    "cons": 2,
-    "nodes": 1
-}
-out_channels = 64    
-# Create an instance of the HeteroGCLSTM model
-model = HeteroGCLSTM(in_channels_dict, out_channels, metadata).to(device)
-
-# Set loss function and optimizer
-criterion = MSELoss()
-optimizer = Adam(model.parameters(), lr=0.001)
-
-# Training loop
-model.train()
-num_epochs = 10
-for epoch in range(num_epochs):
-    total_loss = 0
-
-    for time, snapshot in enumerate(train_dataset):
-        snapshot = snapshot.to(device)
-
-        optimizer.zero_grad()
+# GPU support
+DEVICE = torch.device('cpu') # cuda
+shuffle=True
+batch_size = 32
 
 
-        # Forward pass
-        h_dict, c_dict = model(snapshot.x_dict, snapshot.edge_index_dict)
+# Change the current working directory to the script's directory
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-        # Compute loss
-        loss = criterion(h_dict['cons'], snapshot.y['cons'])
+# Load the data from the pickle file
+with open('../../data/processed/data.pickle', 'rb') as file:
+    loaded_data = pickle.load(file)
 
-        # Backward pass and optimization
-        loss.backward()
-        optimizer.step()
+# Access the loaded data
+edge_index = loaded_data['edge_index']
+edge_weight = loaded_data['edge_weight']
+features_seq = loaded_data['features_seq']
+targets_seq = loaded_data['targets_seq']
 
-        total_loss += loss.item()
 
-    # Compute average loss for the epoch
-    avg_loss = total_loss / len(train_dataset)
+dataset = StaticGraphTemporalSignal(
+    edge_index=edge_index, edge_weight=edge_weight,
+    features=features_seq, targets=targets_seq
+)
 
-    print(f'Epoch: {epoch + 1}, Loss: {avg_loss}')
+train_dataset, test_dataset = temporal_signal_split(dataset, train_ratio=0.8)
 
-# Evaluation loop
-model.eval()
-total_test_loss = 0
+model = RecurrentGCN(node_features=9)
 
-for time, snapshot in enumerate(test_dataset):
-    data = snapshot.to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
-    with torch.no_grad():
-        h_dict, c_dict = model(snapshot.x_dict, snapshot.edge_index_dict)
-        loss = criterion(h_dict['cons'], data.y['cons'])
-        total_test_loss += loss.item()
-
-# Compute average test loss
-avg_test_loss = total_test_loss / len(test_dataset)
-print(f'Test Loss: {avg_test_loss}')
+model._train(model, train_dataset=train_dataset, epochs=10, lr=0.01, h=None, c=None)

@@ -1,9 +1,9 @@
-import datetime
-from tqdm import tqdm
 import torch
 import torch.nn.functional as F
 #from torch_geometric_temporal.nn.recurrent import DCRNN,GCLSTM
 from torch_geometric_temporal.nn.recurrent import GConvLSTM
+from tqdm import tqdm
+import datetime
 
 
 class RecurrentGCN(torch.nn.Module):
@@ -19,26 +19,22 @@ class RecurrentGCN(torch.nn.Module):
         return h, h_0, c_0
         
 
-    def train(self, model, train_dataset, epochs, h=None, c=None):
+    def _train(self, model, train_dataset, epochs, lr=0.01, h=None, c=None):
         model.train()
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
         costs = []
 
         for epoch in range(epochs):
             cost = 0
-            h, c = None, None
-
             # Training loop over the dataset
             for time, snapshot in enumerate(train_dataset):
-                optimizer.zero_grad()
                 y_hat, h, c = model(snapshot.x, snapshot.edge_index, snapshot.edge_attr, h, c)
-                loss = torch.mean((y_hat - snapshot.y) ** 2)
-                cost += loss.item()
-                loss.backward()
-                optimizer.step()
+                cost = cost + torch.mean((y_hat - snapshot.y) ** 2)
 
-            cost /= (time + 1)
-            costs.append(cost)
+            cost = cost / (time+1)
+            cost.backward()
+            optimizer.step()
+            optimizer.zero_grad()
 
             print(f"Epoch {epoch+1}/{epochs} - Cost: {cost:.4f}")
 

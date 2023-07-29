@@ -19,20 +19,24 @@ class RecurrentGCN(torch.nn.Module):
         return h, h_0, c_0
         
 
-    def _train(self, model, train_dataset, epochs, lr=0.01, h=None, c=None):
+    def _train(self, model, train_dataset, epochs, lr=0.01, h=None, c=None, pinns_loss=None, _lambda = None, v_lower=None, v_upper=None):
         model.train()
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)
         costs = []
 
         for epoch in range(epochs):
             cost = 0
+            h=None; c=None
             # Training loop over the dataset
             for time, snapshot in enumerate(train_dataset):
                 y_hat, h, c = model(snapshot.x, snapshot.edge_index, snapshot.edge_attr, h, c)
-                cost = cost + torch.mean((y_hat - snapshot.y) ** 2)
+                v_pred = y_hat[:,-1]
+                cost = cost + torch.mean((y_hat - snapshot.y) ** 2) + _lambda*pinns_loss(v_pred, v_lower, v_upper)
 
             cost = cost / (time+1)
+            costs.append(float(cost))
             cost.backward()
+            
             optimizer.step()
             optimizer.zero_grad()
 

@@ -1,4 +1,5 @@
 import os
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 import sys
 import pickle
 import logging
@@ -10,7 +11,7 @@ from torch_geometric_temporal.signal import temporal_signal_split
 import matplotlib.pyplot as plt
 
 from model import RecurrentGCN
-from .utilities import pinns_loss 
+from utilities import pinns_loss 
 
 def train_model(lr, batch_size, epochs, pinns_loss, _lambda):
     start_time = time.time()
@@ -55,8 +56,8 @@ def train_model(lr, batch_size, epochs, pinns_loss, _lambda):
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     
     n = 5  # number of nodes
-    v_lower = torch.zeros((n, 1))
-    v_upper = torch.ones((n, 1))
+    v_lower = torch.ones((n, 1))*0.93
+    v_upper = torch.ones((n, 1))*1.07
 
     costs, model_path = model._train(model, train_dataset=train_dataset, epochs=epochs, lr=lr, h=None, c=None, pinns_loss=pinns_loss,  _lambda=_lambda, v_lower=v_lower, v_upper=v_upper)
 
@@ -67,15 +68,18 @@ def train_model(lr, batch_size, epochs, pinns_loss, _lambda):
 if __name__ == "__main__":
     learning_rate = 0.01
     batch_size = 32
-    num_epochs = 10
+    num_epochs = 50
     _lambda = 0.7
 
-    costs, model_path = train_model(lr=learning_rate, batch_size=batch_size, epochs=num_epochs, _lambda = 0.7 )
+    costs, model_path = train_model(lr=learning_rate, batch_size=batch_size, epochs=num_epochs, pinns_loss=pinns_loss, _lambda=_lambda)
 
-        # Plot the predictions
+    # Plot the predictions
     plt.plot(range(len(costs)), costs, marker='o', linestyle='-')
     plt.xlabel('Data Points')
     plt.ylabel('Predictions')
     plt.title('Predictions Plot')
     plt.grid(True)
     plt.show()
+
+    with open('costs_pinns.pkl', 'wb') as f:
+        pickle.dump(costs, f)

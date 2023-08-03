@@ -1,4 +1,5 @@
 import os
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 import sys
 import pickle
 import logging
@@ -63,14 +64,17 @@ def train_model(lr, batch_size, epochs):
 if __name__ == "__main__":
     learning_rate = 0.01
     batch_size = 32
-    num_epochs = 10
+    num_epochs = 50
 
     costs, model_path = train_model(lr=learning_rate, batch_size=batch_size, epochs=num_epochs)
 
-        # Plot the predictions
+    # Plot the predictions
     plt.plot(range(len(costs)), costs, marker='o', linestyle='-')
     plt.xlabel('Data Points')
     plt.ylabel('Predictions')
     plt.title('Predictions Plot')
     plt.grid(True)
     plt.show()
+
+    with open('costs.pkl', 'wb') as f:
+        pickle.dump(costs, f)

@@ -31,7 +31,10 @@ class RecurrentGCN(torch.nn.Module):
             for time, snapshot in enumerate(train_dataset):
                 y_hat, h, c = model(snapshot.x, snapshot.edge_index, snapshot.edge_attr, h, c)
                 v_pred = y_hat[:,-1]
-                cost = cost + torch.mean((y_hat - snapshot.y) ** 2) + _lambda*pinns_loss(v_pred, v_lower, v_upper)
+                if _lambda is None:
+                    cost = cost + torch.mean((y_hat - snapshot.y) ** 2) 
+                else:
+                    cost = cost + torch.mean((y_hat - snapshot.y) ** 2) + _lambda*pinns_loss(v_pred, v_lower, v_upper)
 
             cost = cost / (time+1)
             costs.append(float(cost))

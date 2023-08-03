@@ -54,7 +54,7 @@ def process_data_and_save():
                 dg_id += 1
                 dg_id_node[dg_id] = row[1][0]
 
-    with open(r'C:\Users\edi\GitHub\pinns_opf\data\interim\variable_data.json') as f:
+    with open(r'C:\Users\edi\GitHub\pinns_opf\data\interim\variable_data_converged.json') as f:
         dataset = json.load(f)
 
     hetero_graph_dataset = dict()
@@ -137,7 +137,7 @@ def process_data_and_save():
     }
 
     # Save the data as a pickle file
-    with open('../../data/processed/data.pickle', 'wb') as file:
+    with open('../../data/processed/data_converged.pickle', 'wb') as file:
         pickle.dump(data, file)
 
 

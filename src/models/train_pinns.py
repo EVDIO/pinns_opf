@@ -35,7 +35,7 @@ def train_model(lr, batch_size, epochs, pinns_loss, _lambda):
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     # Load the data from the pickle file
-    with open('../../data/processed/data_converged2.pickle', 'rb') as file:
+    with open('../../data/processed/data_converged_noise2.pickle', 'rb') as file:
         loaded_data = pickle.load(file)
 
     # Access the loaded data

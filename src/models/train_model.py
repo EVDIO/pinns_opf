@@ -35,7 +35,7 @@ def train_model(lr, batch_size, epochs):
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     # Load the data from the pickle file
-    with open('../../data/processed/data.pickle', 'rb') as file:
+    with open('../../data/processed/data_converged_noise3.pickle', 'rb') as file:
         loaded_data = pickle.load(file)
 
     # Access the loaded data
@@ -62,9 +62,10 @@ def train_model(lr, batch_size, epochs):
     return costs, model_path
 
 if __name__ == "__main__":
-    learning_rate = 0.01
+    
+    learning_rate = 0.02
     batch_size = 32
-    num_epochs = 50
+    num_epochs = 100
 
     costs, model_path = train_model(lr=learning_rate, batch_size=batch_size, epochs=num_epochs)
 

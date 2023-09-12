@@ -35,7 +35,7 @@ def train_model(lr, batch_size, epochs, pinns_loss, _lambda):
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     # Load the data from the pickle file
-    with open('../../data/processed/data.pickle', 'rb') as file:
+    with open('../../data/processed/data_converged.pickle', 'rb') as file:
         loaded_data = pickle.load(file)
 
     # Access the loaded data
@@ -66,10 +66,10 @@ def train_model(lr, batch_size, epochs, pinns_loss, _lambda):
     return costs, model_path
 
 if __name__ == "__main__":
-    learning_rate = 0.01
+    learning_rate = 0.05
     batch_size = 32
-    num_epochs = 50
-    _lambda = 0.7
+    num_epochs = 100
+    _lambda = 0.3
 
     costs, model_path = train_model(lr=learning_rate, batch_size=batch_size, epochs=num_epochs, pinns_loss=pinns_loss, _lambda=_lambda)
 
@@ -81,5 +81,5 @@ if __name__ == "__main__":
     plt.grid(True)
     plt.show()
 
-    with open('costs_pinns.pkl', 'wb') as f:
+    with open('costs_pinns_100_noise2.pkl', 'wb') as f:
         pickle.dump(costs, f)

@@ -56,11 +56,11 @@ class RecurrentGCN(torch.nn.Module):
         predictions = []
         targets = []
 
-        with torch.no_grad():
-            for snapshot in eval_dataset:
-                y_hat, _, _ = model(snapshot.x, snapshot.edge_index, snapshot.edge_attr, h, c)
-                predictions.append(y_hat)
-                targets.append(snapshot.y)
+        
+        for time,snapshot in enumerate(eval_dataset):
+            y_hat, _, _ = model(snapshot.x, snapshot.edge_index, snapshot.edge_attr, h, c)
+            predictions.append(y_hat)
+            targets.append(snapshot.y)
 
         predictions = torch.cat(predictions, dim=0)
         targets = torch.cat(targets, dim=0)

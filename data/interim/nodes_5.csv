@@ -1,6 +1,6 @@
-﻿Nodes,Tb,pos_x,pos_y,energy_resource1,energy_resource2,energy_resource3,energy_resource4,energy_resource5
-1,1,0,0,dg,cons,ev,pv,
-2,0,1,0,cons,cons,cons,ev,
-3,0,2,0,cons,cons,cons,ess,
-4,0,3,0,cons,cons,cons,cons,
-5,0,4,0,cons,cons,cons,cons,
+﻿Nodes,Tb,pos_x,pos_y,energy_resource1,energy_resource2,energy_resource3,energy_resource4,energy_resource5,energy_resource6
+1,1,0,0,dg,cons,ev,pv,cons,cons
+2,0,1,0,cons,cons,cons,ev,cons,cons
+3,0,2,0,cons,cons,cons,ess,cons,cons
+4,0,3,0,cons,cons,cons,cons,cons,cons
+5,0,4,0,cons,cons,cons,cons,cons,cons

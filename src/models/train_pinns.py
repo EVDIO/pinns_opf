@@ -66,20 +66,24 @@ def train_model(lr, batch_size, epochs, pinns_loss, _lambda):
     return costs, model_path
 
 if __name__ == "__main__":
-    learning_rate = 0.05
+
+    cost_list = []
+    learning_rates = [0.1,0.05,0.01,0.005]
     batch_size = 32
     num_epochs = 100
     _lambda = 0.3
 
-    costs, model_path = train_model(lr=learning_rate, batch_size=batch_size, epochs=num_epochs, pinns_loss=pinns_loss, _lambda=_lambda)
+    for learning_rate in learning_rates:
+        costs, model_path = train_model(lr=learning_rate, batch_size=batch_size, epochs=num_epochs, pinns_loss=pinns_loss, _lambda=_lambda)
+        cost_list.append(costs)
 
     # Plot the predictions
-    plt.plot(range(len(costs)), costs, marker='o', linestyle='-')
-    plt.xlabel('Data Points')
-    plt.ylabel('Predictions')
-    plt.title('Predictions Plot')
-    plt.grid(True)
-    plt.show()
+    # plt.plot(range(len(costs)), costs, marker='o', linestyle='-')
+    # plt.xlabel('Data Points')
+    # plt.ylabel('Predictions')
+    # plt.title('Predictions Plot')
+    # plt.grid(True)
+    # plt.show()
 
-    with open('costs_pinns_100_noise2.pkl', 'wb') as f:
-        pickle.dump(costs, f)
+    with open('costs_pinns_list.pkl', 'wb') as f:
+        pickle.dump(cost_list, f)

@@ -63,19 +63,22 @@ def train_model(lr, batch_size, epochs):
 
 if __name__ == "__main__":
     
-    learning_rate = 0.02
+    cost_list = []
+    learning_rates = [0.1,0.05,0.01,0.005]
     batch_size = 32
-    num_epochs = 100
+    num_epochs = 5
 
-    costs, model_path = train_model(lr=learning_rate, batch_size=batch_size, epochs=num_epochs)
-
+    for learning_rate in learning_rates:
+    
+        costs, model_path = train_model(lr=learning_rate, batch_size=batch_size, epochs=num_epochs)
+        cost_list.append(costs)
     # Plot the predictions
-    plt.plot(range(len(costs)), costs, marker='o', linestyle='-')
-    plt.xlabel('Data Points')
-    plt.ylabel('Predictions')
-    plt.title('Predictions Plot')
-    plt.grid(True)
-    plt.show()
+    # plt.plot(range(len(costs)), costs, marker='o', linestyle='-')
+    # plt.xlabel('Data Points')
+    # plt.ylabel('Predictions')
+    # plt.title('Predictions Plot')
+    # plt.grid(True)
+    # plt.show()
 
-    with open('costs.pkl', 'wb') as f:
-        pickle.dump(costs, f)
+    with open('costs_list.pkl', 'wb') as f:
+        pickle.dump(cost_list, f)

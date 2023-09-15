@@ -68,12 +68,13 @@ def train_model(lr, batch_size, epochs, pinns_loss, _lambda):
 if __name__ == "__main__":
 
     cost_list = []
-    learning_rates = [0.1,0.05,0.01,0.005]
+    lambdas_rates = [0.5,0.3,0.1,0.05,0.01]
     batch_size = 32
     num_epochs = 100
     _lambda = 0.3
+    learning_rate = 0.05
 
-    for learning_rate in learning_rates:
+    for _lambda in lambdas_rates:
         costs, model_path = train_model(lr=learning_rate, batch_size=batch_size, epochs=num_epochs, pinns_loss=pinns_loss, _lambda=_lambda)
         cost_list.append(costs)
 
@@ -85,5 +86,5 @@ if __name__ == "__main__":
     # plt.grid(True)
     # plt.show()
 
-    with open('costs_pinns_list.pkl', 'wb') as f:
+    with open('costs_pinns_list_lambda.pkl', 'wb') as f:
         pickle.dump(cost_list, f)

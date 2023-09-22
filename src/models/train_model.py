@@ -59,7 +59,7 @@ def train_model(lr, batch_size, epochs):
 
     print(f"Training completed in {time.time() - start_time:.2f} seconds.")
     training_time = time.time() - start_time
-    return costs, model_path,training_time
+    return costs, model,training_time
 
 if __name__ == "__main__":
     
@@ -67,10 +67,10 @@ if __name__ == "__main__":
     time_list = []
     lambdas_rates = [0.5,0.3,0.1,0.05,0.01]
     batch_size = 32
-    num_epochs = 100
+    num_epochs = 1
     training_time_list = []
     for lr in lambdas_rates:
-        costs, model,training_time = train_model(lr=lr, batch_size=batch_size, epochs=num_epochs)
+        costs, model, training_time = train_model(lr=lr, batch_size=batch_size, epochs=num_epochs)
         # Plot the predictions
         # plt.plot(range(len(costs)), costs, marker='o', linestyle='-')
         # plt.xlabel('Data Points')

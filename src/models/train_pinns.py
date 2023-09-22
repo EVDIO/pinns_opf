@@ -71,12 +71,12 @@ if __name__ == "__main__":
     cost_list = []
     lambdas_rates = [0.5,0.3,0.1,0.05,0.01]
     batch_size = 32
-    num_epochs = 100
+    num_epochs = 1
     _lambda = 0.35
     learning_rate = 0.05
 
-
-    costs, model = train_model(lr=learning_rate, batch_size=batch_size, epochs=num_epochs, pinns_loss=voltage_loss, _lambda=_lambda)
+    for lr in lambdas_rates:
+        costs, model = train_model(lr=lr, batch_size=batch_size, epochs=num_epochs, pinns_loss=powerflow_loss, _lambda=_lambda)
 
     # Plot the predictions
     # plt.plot(range(len(costs)), costs, marker='o', linestyle='-')
@@ -86,8 +86,9 @@ if __name__ == "__main__":
     # plt.grid(True)
     # plt.show()
         # Save the model at the end of training
-    model_path = f"model_final_pinns.pt"
-    torch.save(model.state_dict(), model_path)
+        cost_list.append(costs)
+        model_path = f"model_final_pinns_P{lr}.pt"
+        torch.save(model.state_dict(), model_path)
 
-    with open('costs_pinns_node10_005.pkl', 'wb') as f:
-        pickle.dump(costs, f)
+    with open('costs_pinns_node10_lr.pkl', 'wb') as f:
+        pickle.dump(cost_list, f)

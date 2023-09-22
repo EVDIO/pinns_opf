@@ -40,18 +40,38 @@ def evaluate_model(model, test_dataset):
     plt.show()
     return predictions, targets
 
-def main():
+
+
+
+
+if __name__ == "__main__":
     # Load the test dataset
     test_dataset = load_data()
 
     # Load the saved model
-    model_path = r"C:\Users\edi\GitHub\pinns_opf\src\models\model_20230911174441.pt"  # replace with your model path or provide a way to input it
-    model = RecurrentGCN(node_features=9)
+    model_path = r"C:\Users\edi\GitHub\pinns_opf\notebooks\training\lr_experiments\model_20230914215342.pt"  # replace with your model path or provide a way to input it
+    model = RecurrentGCN(node_features=12)
     model.load_state_dict(torch.load(model_path))
 
-    # Evaluate the model
-    predictions, targets = evaluate_model(model, test_dataset)
+    model.eval()
+    predictions = []
+    targets = []
 
+    
+    with torch.no_grad():
+        for time,snapshot in enumerate(test_dataset):
+            y_hat, _, _ = model(snapshot.x, snapshot.edge_index, snapshot.edge_attr, None, None)
+            predictions.append(y_hat)
+            targets.append(snapshot.y)
 
-if __name__ == "__main__":
-    main()
+    predictions = torch.cat(predictions, dim=0)
+    targets = torch.cat(targets, dim=0)
+
+mse = torch.mean(torch.abs(predictions - targets)**2)
+print("Mean Squared Error:", mse)
+
+with open('predictions_.pkl', 'wb') as f:
+    pickle.dump(predictions, f)
+
+with open('targets_.pkl', 'wb') as f:
+    pickle.dump(targets, f)

@@ -13,8 +13,8 @@ def process_data_and_save():
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
-    nodes = pd.read_csv('../../data/interim/nodes_5.csv')
-    lines = pd.read_csv('../../data/interim/lines_5.csv')
+    nodes = pd.read_csv('../../data/interim/nodes_10.csv')
+    lines = pd.read_csv('../../data/interim/lines_10.csv')
 
     cons_id = 0
     cons_id_node = {}
@@ -54,7 +54,7 @@ def process_data_and_save():
                 dg_id += 1
                 dg_id_node[dg_id] = row[1][0]
 
-    with open(r'C:\Users\edi\GitHub\pinns_opf\data\interim\variable_data_big.json') as f:
+    with open(r'C:\Users\edi\GitHub\pinns_opf\data\interim\variable_data_node10.json') as f:
         dataset = json.load(f)
 
     hetero_graph_dataset = dict()
@@ -71,7 +71,7 @@ def process_data_and_save():
                 hetero_graph_dataset[node_id_g].append(dataset[key][str(node_id_g)])
             elif 'ev' in key:
                 node_id_g = ev_id_node[int(node_id)]
-                hetero_graph_dataset[node_id_g].append(dataset[key][str(node_id_g)])
+                hetero_graph_dataset[node_id_g].append(dataset[key][str(node_id)])
             elif 'pv' in key:
                 node_id_g = pv_id_node[int(node_id)]
                 hetero_graph_dataset[node_id_g].append(dataset[key][str(node_id)])
@@ -83,6 +83,9 @@ def process_data_and_save():
                 hetero_graph_dataset[node_id_g].append(dataset[key][str(node_id)])
             elif 'V' in key:
                 hetero_graph_dataset[int(node_id)].append(dataset[key][str(node_id)])
+            elif 'I' in key:
+                hetero_graph_dataset[int(node_id)].append(dataset[key][str(node_id)])
+            
 
     list_ = []
     for node,value in hetero_graph_dataset.items():
@@ -90,8 +93,8 @@ def process_data_and_save():
         list_.append(np.array(value))
 
     # Stack the arrays from the dictionary into the result array
-    # Create an empty numpy array of size 24x5x9
-    result_array = np.empty((24, 5, 13))
+    # Create an empty numpy array of size 24x10x12
+    result_array = np.empty((24, 10, 12))
 
     for i, key in enumerate(hetero_graph_dataset.keys()):
         result_array[:, i, :] = hetero_graph_dataset[key].T
@@ -136,7 +139,7 @@ def process_data_and_save():
     }
 
     # Save the data as a pickle file
-    with open('../../data/processed/data_big.pickle', 'wb') as file:
+    with open('../../data/processed/data_node10.pickle', 'wb') as file:
         pickle.dump(data, file)
 
     

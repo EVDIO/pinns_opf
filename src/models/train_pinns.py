@@ -11,7 +11,7 @@ from torch_geometric_temporal.signal import temporal_signal_split
 import matplotlib.pyplot as plt
 
 from model import RecurrentGCN
-from utilities import pinns_loss 
+from utilities import voltage_loss, powerflow_loss 
 
 def train_model(lr, batch_size, epochs, pinns_loss, _lambda):
     start_time = time.time()
@@ -35,7 +35,7 @@ def train_model(lr, batch_size, epochs, pinns_loss, _lambda):
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     # Load the data from the pickle file
-    with open('../../data/processed/data_converged_noise2.pickle', 'rb') as file:
+    with open('../../data/processed/data_node10.pickle', 'rb') as file:
         loaded_data = pickle.load(file)
 
     # Access the loaded data
@@ -51,19 +51,20 @@ def train_model(lr, batch_size, epochs, pinns_loss, _lambda):
 
     train_dataset, test_dataset = temporal_signal_split(dataset, train_ratio=0.8)
 
-    model = RecurrentGCN(node_features=9)
+    model = RecurrentGCN(node_features=12)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     
-    n = 5  # number of nodes
+    n = 10  # number of nodes
     v_lower = torch.ones((n, 1))*0.93
     v_upper = torch.ones((n, 1))*1.07
 
     costs, model_path = model._train(model, train_dataset=train_dataset, epochs=epochs, lr=lr, h=None, c=None, pinns_loss=pinns_loss,  _lambda=_lambda, v_lower=v_lower, v_upper=v_upper)
 
     print(f"Training completed in {time.time() - start_time:.2f} seconds.")
+    total_time = time.time() - start_time
 
-    return costs, model_path
+    return costs, model_path,total_time
 
 if __name__ == "__main__":
 
@@ -71,12 +72,11 @@ if __name__ == "__main__":
     lambdas_rates = [0.5,0.3,0.1,0.05,0.01]
     batch_size = 32
     num_epochs = 100
-    _lambda = 0.3
+    _lambda = 10
     learning_rate = 0.05
 
-    for _lambda in lambdas_rates:
-        costs, model_path = train_model(lr=learning_rate, batch_size=batch_size, epochs=num_epochs, pinns_loss=pinns_loss, _lambda=_lambda)
-        cost_list.append(costs)
+
+    costs, model = train_model(lr=learning_rate, batch_size=batch_size, epochs=num_epochs, pinns_loss=powerflow_loss, _lambda=_lambda)
 
     # Plot the predictions
     # plt.plot(range(len(costs)), costs, marker='o', linestyle='-')
@@ -85,6 +85,9 @@ if __name__ == "__main__":
     # plt.title('Predictions Plot')
     # plt.grid(True)
     # plt.show()
+        # Save the model at the end of training
+    model_path = f"model_final_pinns.pt"
+    torch.save(model.state_dict(), model_path)
 
-    with open('costs_pinns_list_lambda.pkl', 'wb') as f:
-        pickle.dump(cost_list, f)
+    # with open('costs_pinns_list_lambda.pkl', 'wb') as f:
+    #     pickle.dump(cost_list, f)

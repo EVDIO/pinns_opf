@@ -10,7 +10,7 @@ class RecurrentGCN(torch.nn.Module):
     def __init__(self, node_features):
         super(RecurrentGCN, self).__init__()
         self.recurrent = GConvLSTM(node_features, 32, 1, normalization='rw')
-        self.linear = torch.nn.Linear(32, 9)
+        self.linear = torch.nn.Linear(32, node_features)
 
     def forward(self, x, edge_index, edge_weight, h, c):
         h_0, c_0 = self.recurrent(x, edge_index, edge_weight, h, c)
@@ -30,11 +30,11 @@ class RecurrentGCN(torch.nn.Module):
             # Training loop over the dataset
             for time, snapshot in enumerate(train_dataset):
                 y_hat, h, c = model(snapshot.x, snapshot.edge_index, snapshot.edge_attr, h, c)
-                v_pred = y_hat[:,-1]
+                #v_pred = y_hat[:,-1]
                 if _lambda is None:
                     cost = cost + torch.mean((y_hat - snapshot.y) ** 2) 
                 else:
-                    cost = cost + torch.mean((y_hat - snapshot.y) ** 2) + _lambda*pinns_loss(v_pred, v_lower, v_upper)
+                    cost = cost + torch.mean((y_hat - snapshot.y) ** 2) + _lambda*pinns_loss(y_hat)
 
             cost = cost / (time+1)
             costs.append(float(cost))
@@ -45,11 +45,9 @@ class RecurrentGCN(torch.nn.Module):
 
             print(f"Epoch {epoch+1}/{epochs} - Cost: {cost:.4f}")
 
-        # Save the model at the end of training
-        model_path = f"model_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.pt"
-        torch.save(model.state_dict(), model_path)
 
-        return costs, model_path
+
+        return costs, model
     
     def evaluate(model, eval_dataset, h=None, c=None):
         model.eval()

@@ -35,7 +35,7 @@ def train_model(lr, batch_size, epochs):
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     # Load the data from the pickle file
-    with open('../../data/processed/data_converged_noise3.pickle', 'rb') as file:
+    with open('../../data/processed/data_node10.pickle', 'rb') as file:
         loaded_data = pickle.load(file)
 
     # Access the loaded data
@@ -51,11 +51,11 @@ def train_model(lr, batch_size, epochs):
 
     train_dataset, test_dataset = temporal_signal_split(dataset, train_ratio=0.8)
 
-    model = RecurrentGCN(node_features=9)
+    model = RecurrentGCN(node_features=11)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
-    costs, model_path = model._train(model, train_dataset=train_dataset, epochs=epochs, lr=lr, h=None, c=None)
+    costs, model = model._train(model, train_dataset=train_dataset, epochs=epochs, lr=lr, h=None, c=None)
 
     print(f"Training completed in {time.time() - start_time:.2f} seconds.")
 
@@ -64,14 +64,13 @@ def train_model(lr, batch_size, epochs):
 if __name__ == "__main__":
     
     cost_list = []
-    learning_rates = [0.1,0.05,0.01,0.005]
+    time_list = []
+    learning_rates = 0.01
     batch_size = 32
-    num_epochs = 5
+    num_epochs = 100
 
-    for learning_rate in learning_rates:
     
-        costs, model_path = train_model(lr=learning_rate, batch_size=batch_size, epochs=num_epochs)
-        cost_list.append(costs)
+    costs, model = train_model(lr=0.05, batch_size=batch_size, epochs=num_epochs)
     # Plot the predictions
     # plt.plot(range(len(costs)), costs, marker='o', linestyle='-')
     # plt.xlabel('Data Points')
@@ -80,5 +79,9 @@ if __name__ == "__main__":
     # plt.grid(True)
     # plt.show()
 
-    with open('costs_list.pkl', 'wb') as f:
-        pickle.dump(cost_list, f)
+    # Save the model at the end of training
+    model_path = f"model_final.pt"
+    torch.save(model.state_dict(), model_path)
+
+    # with open('costs_final.pkl', 'wb') as f:
+    #     pickle.dump(cost_list, f)

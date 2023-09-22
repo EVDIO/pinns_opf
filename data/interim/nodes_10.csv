@@ -1,0 +1,11 @@
+﻿Nodes,Tb,pos_x,pos_y,energy_resource1,energy_resource2,energy_resource3,energy_resource4,energy_resource5
+1,1,0,0,cons,cons,cons,cons,cons
+2,0,1,0,cons,cons,cons,cons,cons
+3,0,2,0,cons,dg,cons,pv,cons
+4,0,3,0,cons,cons,cons,cons,cons
+5,0,4,0,dg,cons,ev,ess,cons
+6,0,5,0,cons,cons,ess,pv,cons
+7,0,3,1,cons,cons,cons,cons,cons
+8,0,4,1,cons,cons,cons,cons,cons
+9,0,6,-1,cons,cons,cons,ev,cons
+10,0,7,-1,cons,cons,cons,cons,cons

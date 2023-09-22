@@ -58,30 +58,35 @@ def train_model(lr, batch_size, epochs):
     costs, model = model._train(model, train_dataset=train_dataset, epochs=epochs, lr=lr, h=None, c=None)
 
     print(f"Training completed in {time.time() - start_time:.2f} seconds.")
-
-    return costs, model_path
+    training_time = time.time() - start_time
+    return costs, model_path,training_time
 
 if __name__ == "__main__":
     
     cost_list = []
     time_list = []
-    learning_rates = 0.01
+    lambdas_rates = [0.5,0.3,0.1,0.05,0.01]
     batch_size = 32
     num_epochs = 100
+    training_time_list = []
+    for lr in lambdas_rates:
+        costs, model,training_time = train_model(lr=lr, batch_size=batch_size, epochs=num_epochs)
+        # Plot the predictions
+        # plt.plot(range(len(costs)), costs, marker='o', linestyle='-')
+        # plt.xlabel('Data Points')
+        # plt.ylabel('Predictions')
+        # plt.title('Predictions Plot')
+        # plt.grid(True)
+        # plt.show()
+        cost_list.append(costs)
+        training_time_list.append(training_time)
+        # Save the model at the end of training
+        model_path = f"model_{lr}.pt"
+        torch.save(model.state_dict(), model_path)
 
-    
-    costs, model = train_model(lr=0.05, batch_size=batch_size, epochs=num_epochs)
-    # Plot the predictions
-    # plt.plot(range(len(costs)), costs, marker='o', linestyle='-')
-    # plt.xlabel('Data Points')
-    # plt.ylabel('Predictions')
-    # plt.title('Predictions Plot')
-    # plt.grid(True)
-    # plt.show()
+    with open('cost_node10_lrs.pkl', 'wb') as f:
+         pickle.dump(cost_list, f)
 
-    # Save the model at the end of training
-    model_path = f"model_final.pt"
-    torch.save(model.state_dict(), model_path)
+    with open('time_node10_lrs.pkl', 'wb') as f:
+         pickle.dump(training_time_list, f)
 
-    with open('cost_node10_005.pkl', 'wb') as f:
-         pickle.dump(costs, f)

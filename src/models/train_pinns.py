@@ -72,11 +72,11 @@ if __name__ == "__main__":
     lambdas_rates = [0.5,0.3,0.1,0.05,0.01]
     batch_size = 32
     num_epochs = 100
-    _lambda = 10
+    _lambda = 0.35
     learning_rate = 0.05
 
 
-    costs, model = train_model(lr=learning_rate, batch_size=batch_size, epochs=num_epochs, pinns_loss=powerflow_loss, _lambda=_lambda)
+    costs, model = train_model(lr=learning_rate, batch_size=batch_size, epochs=num_epochs, pinns_loss=voltage_loss, _lambda=_lambda)
 
     # Plot the predictions
     # plt.plot(range(len(costs)), costs, marker='o', linestyle='-')

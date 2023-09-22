@@ -86,7 +86,8 @@ def process_data_and_save():
             elif 'I' in key:
                 hetero_graph_dataset[int(node_id)].append(dataset[key][str(node_id)])
             
-
+    hetero_graph_dataset[int(8)].append(dataset[key][str(node_id)])
+    hetero_graph_dataset[int(10)].append(dataset[key][str(node_id)])
     list_ = []
     for node,value in hetero_graph_dataset.items():
         hetero_graph_dataset[node] = np.array(value)

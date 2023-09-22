@@ -89,5 +89,5 @@ if __name__ == "__main__":
     model_path = f"model_final_pinns.pt"
     torch.save(model.state_dict(), model_path)
 
-    # with open('costs_pinns_list_lambda.pkl', 'wb') as f:
-    #     pickle.dump(cost_list, f)
+    with open('costs_pinns_node10_005.pkl', 'wb') as f:
+        pickle.dump(costs, f)

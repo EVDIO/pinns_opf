@@ -51,7 +51,7 @@ def train_model(lr, batch_size, epochs):
 
     train_dataset, test_dataset = temporal_signal_split(dataset, train_ratio=0.8)
 
-    model = RecurrentGCN(node_features=11)
+    model = RecurrentGCN(node_features=12)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
@@ -83,5 +83,5 @@ if __name__ == "__main__":
     model_path = f"model_final.pt"
     torch.save(model.state_dict(), model_path)
 
-    # with open('costs_final.pkl', 'wb') as f:
-    #     pickle.dump(cost_list, f)
+    with open('cost_node10_005.pkl', 'wb') as f:
+         pickle.dump(costs, f)

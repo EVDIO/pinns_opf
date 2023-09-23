@@ -70,14 +70,14 @@ if __name__ == "__main__":
 
     cost_list = []
     training_time_list = []
-    lambdas_rates = [0.5,0.3,0.1,0.05,0.01]
+    lambdas_rates = [0.1,0.05,0.01]
     batch_size = 32
     num_epochs = 1
-    _lambda = 10
+    _lambda = 100
     K = [14,28,32]
 
-    for k in K:
-        costs, model,total_time = train_model(k,lr=0.05, batch_size=batch_size, epochs=num_epochs, pinns_loss=powerflow_loss, _lambda=_lambda)
+    for lr in lambdas_rates:
+        costs, model,total_time = train_model(k=14,lr=lr, batch_size=batch_size, epochs=num_epochs, pinns_loss=powerflow_loss, _lambda=_lambda)
 
     # Plot the predictions
     # plt.plot(range(len(costs)), costs, marker='o', linestyle='-')
@@ -90,11 +90,11 @@ if __name__ == "__main__":
         cost_list.append(costs)
         training_time_list.append(total_time)
 
-        model_path = f"model_final_pinns_{k}.pt"
+        model_path = f"model_final_pinns_{lr}.pt"
         torch.save(model.state_dict(), model_path)
 
-    with open('costs_pinns_node10_ks.pkl', 'wb') as f:
+    with open('costs_pinns_node10_lr.pkl', 'wb') as f:
         pickle.dump(cost_list, f)
     
-    with open('time_node10_ks.pkl', 'wb') as f:
+    with open('time_node10_lr.pkl', 'wb') as f:
          pickle.dump(training_time_list, f)

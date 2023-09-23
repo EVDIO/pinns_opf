@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from model import RecurrentGCN
 from utilities import voltage_loss, powerflow_loss 
 
-def train_model(lr, batch_size, epochs, pinns_loss, _lambda):
+def train_model(k,lr, batch_size, epochs, pinns_loss, _lambda):
     start_time = time.time()
 
     # Create and configure logger
@@ -51,7 +51,7 @@ def train_model(lr, batch_size, epochs, pinns_loss, _lambda):
 
     train_dataset, test_dataset = temporal_signal_split(dataset, train_ratio=0.8)
 
-    model = RecurrentGCN(node_features=12)
+    model = RecurrentGCN(node_features=12,k=k)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     
@@ -69,14 +69,15 @@ def train_model(lr, batch_size, epochs, pinns_loss, _lambda):
 if __name__ == "__main__":
 
     cost_list = []
+    training_time_list = []
     lambdas_rates = [0.5,0.3,0.1,0.05,0.01]
     batch_size = 32
     num_epochs = 1
-    _lambda = 0.35
-    learning_rate = 0.05
+    _lambda = 10
+    K = [14,28,32]
 
-    for lr in lambdas_rates:
-        costs, model = train_model(lr=lr, batch_size=batch_size, epochs=num_epochs, pinns_loss=powerflow_loss, _lambda=_lambda)
+    for k in K:
+        costs, model,total_time = train_model(k,lr=0.05, batch_size=batch_size, epochs=num_epochs, pinns_loss=powerflow_loss, _lambda=_lambda)
 
     # Plot the predictions
     # plt.plot(range(len(costs)), costs, marker='o', linestyle='-')
@@ -87,8 +88,13 @@ if __name__ == "__main__":
     # plt.show()
         # Save the model at the end of training
         cost_list.append(costs)
-        model_path = f"model_final_pinns_P{lr}.pt"
+        training_time_list.append(total_time)
+
+        model_path = f"model_final_pinns_{k}.pt"
         torch.save(model.state_dict(), model_path)
 
-    with open('costs_pinns_node10_lr.pkl', 'wb') as f:
+    with open('costs_pinns_node10_ks.pkl', 'wb') as f:
         pickle.dump(cost_list, f)
+    
+    with open('time_node10_ks.pkl', 'wb') as f:
+         pickle.dump(training_time_list, f)

@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from model import RecurrentGCN
 
 
-def train_model(lr, batch_size, epochs):
+def train_model(k,lr, batch_size, epochs):
     start_time = time.time()
 
     # Create and configure logger
@@ -51,7 +51,7 @@ def train_model(lr, batch_size, epochs):
 
     train_dataset, test_dataset = temporal_signal_split(dataset, train_ratio=0.8)
 
-    model = RecurrentGCN(node_features=12)
+    model = RecurrentGCN(node_features=12,k=k)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
@@ -63,14 +63,16 @@ def train_model(lr, batch_size, epochs):
 
 if __name__ == "__main__":
     
+    
     cost_list = []
     time_list = []
     lambdas_rates = [0.5,0.3,0.1,0.05,0.01]
     batch_size = 32
-    num_epochs = 1
+    num_epochs = 100
     training_time_list = []
-    for lr in lambdas_rates:
-        costs, model, training_time = train_model(lr=lr, batch_size=batch_size, epochs=num_epochs)
+    K = [14,28,32]
+    for k in K:
+        costs, model, training_time = train_model(k, lr=0.05, batch_size=batch_size, epochs=num_epochs)
         # Plot the predictions
         # plt.plot(range(len(costs)), costs, marker='o', linestyle='-')
         # plt.xlabel('Data Points')
@@ -81,12 +83,12 @@ if __name__ == "__main__":
         cost_list.append(costs)
         training_time_list.append(training_time)
         # Save the model at the end of training
-        model_path = f"model_{lr}.pt"
+        model_path = f"model_{k}.pt"
         torch.save(model.state_dict(), model_path)
 
-    with open('cost_node10_lrs.pkl', 'wb') as f:
+    with open('cost_node10_k.pkl', 'wb') as f:
          pickle.dump(cost_list, f)
 
-    with open('time_node10_lrs.pkl', 'wb') as f:
+    with open('time_node10_k.pkl', 'wb') as f:
          pickle.dump(training_time_list, f)
 

@@ -7,10 +7,10 @@ import datetime
 
 
 class RecurrentGCN(torch.nn.Module):
-    def __init__(self, node_features):
+    def __init__(self, node_features,k):
         super(RecurrentGCN, self).__init__()
-        self.recurrent = GConvLSTM(node_features, 32, 1, normalization='rw')
-        self.linear = torch.nn.Linear(32, node_features)
+        self.recurrent = GConvLSTM(node_features, k, 1, normalization='rw')
+        self.linear = torch.nn.Linear(k, node_features)
 
     def forward(self, x, edge_index, edge_weight, h, c):
         h_0, c_0 = self.recurrent(x, edge_index, edge_weight, h, c)
